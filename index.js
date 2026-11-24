@@ -547,6 +547,11 @@
   renderAccentPresets();
   syncUI();
 
+  /* ---------- Focus search input ---------- */
+  setTimeout(function(){
+    $("searchInput").focus();
+  }, 200);
+
   /* ---------- URL-based search ---------- */
   (function(){
     var params = new URLSearchParams(window.location.search);
