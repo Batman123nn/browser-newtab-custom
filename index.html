@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>New Tab</title>
+<style>
+  :root{
+    --accent: #4b99c9;
+    --accent-soft: rgba(75, 155, 201, 0.35);
+    --accent-glow: rgba(75, 155, 201, 0.18);
+    --ink: #eaf0f5;
+    --ink-dim: rgba(245,241,234,0.62);
+    --glass: rgba(18,16,14,0.38);
+    --glass-strong: rgba(14,12,10,0.6);
+    --glass-border: rgba(234, 237, 245, 0.14);
+    --radius: 14px;
+    --overlay-opacity: 1;
+    --clock-size: clamp(56px, 11vw, 128px);
+    --clock-x: 0px;
+    --clock-y: 0px;
+    --search-y: 0px;
+    --add-btn-y: 0px;
+    color-scheme: dark;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+
+  body{
+    font-family: "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: #14110e;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ---------- animations ---------- */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* staggered entrance classes */
+  .anim-enter { opacity: 0; animation: fadeSlideUp .6s cubic-bezier(.23,1,.32,1) forwards; }
+  .anim-d1 { animation-delay: .08s; }
+  .anim-d2 { animation-delay: .18s; }
+  .anim-d3 { animation-delay: .30s; }
+  .anim-d4 { animation-delay: .42s; }
+  .anim-d5 { animation-delay: .54s; }
+  .anim-d6 { animation-delay: .66s; }
+
+  /* ---------- wallpaper layer ---------- */
+  #wallpaper{
+    position: fixed; inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: #1a1612;
+    z-index: 0;
+  }
+  #wallpaper::after{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.12) 38%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+    opacity: var(--overlay-opacity);
+    transition: opacity .4s ease;
+  }
+  #wallpaper.empty::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(900px 600px at 15% 20%, var(--accent-soft), transparent 60%),
+      radial-gradient(1000px 700px at 85% 85%, var(--accent-soft), transparent 60%),
+      linear-gradient(160deg, var(--grad-a, #1d1915), var(--grad-b, #14110e) 70%);
+    transition: background .6s ease;
+  }
+
+  /* ---------- layout ---------- */
+  .scene{
+    position: relative; z-index: 1;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: clamp(18px, 4vw, 44px);
+  }
+
+  .topbar{
+    display:flex; justify-content:flex-end; align-items:flex-start;
+    gap: 10px;
+  }
+
+  .icon-btn{
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    cursor: pointer;
+    transition: all .2s cubic-bezier(.23,1,.32,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .icon-btn::before{
+    content:"";
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .icon-btn:hover{ background: var(--glass-strong); transform: translateY(-2px) scale(1.08); border-color: var(--accent); }
+  .icon-btn:hover::before{ opacity: .4; }
+  .icon-btn:active{ transform: translateY(0) scale(.96); }
+  .icon-btn svg{ width:18px; height:18px; position:relative; z-index:1; }
+
+  .middle{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: clamp(16px, 3vw, 34px);
+    text-align:center;
+  }
+
+  /* ---------- greeting ---------- */
+  .greeting{
+    font-size: clamp(14px, 2vw, 20px);
+    color: var(--ink-dim);
+    letter-spacing: 0.03em;
+    font-weight: 400;
+    transition: opacity .3s ease;
+  }
+
+  /* ---------- clock ---------- */
+  .clock-wrap{
+    animation: fadeIn .5s ease forwards;
+    animation-delay: .1s;
+    opacity: 0;
+    transform: translate(var(--clock-x), var(--clock-y));
+    transition: transform .3s ease;
+  }
+  .clock{
+    font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: var(--clock-size);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.25);
+    transition: font-size .3s ease;
+  }
+  .date{
+    margin-top: 10px;
+    font-size: clamp(13px, 1.6vw, 16px);
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+    transition: color .3s ease;
+  }
+
+  /* ---------- search ---------- */
+  .searchwrap{
+    width: min(560px, 86vw);
+    position: relative;
+    top: var(--search-y);
+    transition: top .3s ease;
+  }
+  .searchbar{
+    display:flex; align-items:center; gap: 10px;
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    transition: all .25s cubic-bezier(.23,1,.32,1);
+  }
+  .searchbar:hover{
+    border-color: rgba(234, 237, 245, 0.22);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    transform: translateY(-1px);
+  }
+  .searchbar:focus-within{
+    border-color: var(--accent);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 0 3px var(--accent-glow);
+    transform: translateY(-2px);
+  }
+  .searchbar svg{ width:17px; height:17px; flex:none; opacity:.75; transition: opacity .2s; }
+  .searchbar:focus-within svg{ opacity: 1; }
+  .searchbar input{
+    flex:1;
+    background:none; border:none; outline:none;
+    color: var(--ink);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .searchbar input::placeholder{ color: var(--ink-dim); transition: color .2s; }
+  .searchbar:focus-within input::placeholder{ color: rgba(245,241,234,0.4); }
+  .engine-pill{
+    flex: none;
+    font-size: 12px;
+    color: var(--ink-dim);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: rgba(0,0,0,0.18);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+    transition: all .2s ease;
+  }
+  .engine-pill:hover{ border-color: var(--accent); color: var(--ink); }
+  .engine-pill option{ color:#111; }
+
+  /* ---------- links ---------- */
+  .links{
+    display:flex; flex-wrap:wrap; justify-content:center; gap: 10px;
+    width: min(680px, 92vw);
+  }
+  .link-chip{
+    display:flex; align-items:center; gap:8px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--ink);
+    text-decoration:none;
+    font-size: 13.5px;
+    transition: all .2s cubic-bezier(.23,1,.32,1);
+    opacity: 0;
+    animation: fadeSlideUp .5s cubic-bezier(.23,1,.32,1) forwards;
+  }
+  .link-chip:hover{
+    background: var(--glass-strong);
+    transform: translateY(-2px) scale(1.04);
+    border-color: var(--accent);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  }
+  .link-chip:active{ transform: translateY(0) scale(.97); }
+  .link-dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--accent);
+    flex:none;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .link-chip:hover .link-dot{
+    transform: scale(1.4);
+    box-shadow: 0 0 8px var(--accent-soft);
+  }
+  .link-chip .remove{
+    margin-left: 2px;
+    opacity: .35;
+    font-size: 13px;
+    cursor:pointer;
+    transition: opacity .15s, color .15s, transform .15s;
+  }
+  .link-chip .remove:hover{ opacity: 1; color: #e8907a; transform: scale(1.2); }
+  .add-chip{
+    border-style: dashed;
+    color: var(--ink-dim);
+    cursor:pointer;
+    background: transparent;
+    opacity: 1;
+    animation: none;
+    position: relative;
+    top: var(--add-btn-y);
+    transition: top .3s ease;
+  }
+  .add-chip:hover{ color: var(--ink); background: var(--glass); }
+
+  /* ---------- bottombar ---------- */
+  .bottombar{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    font-size: 12px; color: var(--ink-dim);
+  }
+  .credit{ max-width: 60%; }
+  .credit b{ color: var(--ink); font-weight: 600; }
+
+  /* ---------- settings panel ---------- */
+  .scrim{
+    position: fixed; inset:0; z-index: 5;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity:0; pointer-events:none;
+    transition: opacity .25s ease;
+  }
+  .scrim.open{ opacity:1; pointer-events:auto; }
+
+  .panel{
+    position: fixed; top: 0; right: 0; z-index: 6;
+    height: 100%;
+    width: min(380px, 90vw);
+    background: #171310;
+    border-left: 1px solid var(--glass-border);
+    padding: 24px 22px;
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.23,1,.32,1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .panel.open{ transform: translateX(0); }
+  .panel::-webkit-scrollbar{ width: 6px; }
+  .panel::-webkit-scrollbar-track{ background: transparent; }
+  .panel::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+  .panel h2{
+    font-size: 16px; font-weight: 600; margin: 0 0 18px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel h2 .close{ cursor:pointer; opacity:.6; font-size: 22px; line-height:1; transition: opacity .15s, transform .15s; }
+  .panel h2 .close:hover{ opacity:1; transform: rotate(90deg); }
+
+  .field{ margin-bottom: 22px; }
+  .field label{
+    display:block; font-size: 12.5px; color: var(--ink-dim);
+    margin-bottom: 8px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase;
+  }
+  .field select, .field input[type=text], .field input[type=number]{
+    width:100%; padding: 10px 12px;
+    border-radius: 9px; border:1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05); color: var(--ink);
+    font-family: inherit; font-size: 13.5px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    outline: none;
+  }
+  .field select:focus, .field input[type=text]:focus, .field input[type=number]:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .field select option{ color:#111; }
+
+  /* segmented toggle */
+  .seg-toggle{
+    display: inline-flex;
+    border-radius: 9px;
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+  }
+  .seg-toggle button{
+    flex: 1;
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: var(--ink-dim);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s ease;
+    position: relative;
+  }
+  .seg-toggle button.active{
+    background: var(--accent);
+    color: #1a1208;
+    font-weight: 600;
+  }
+  .seg-toggle button:not(.active):hover{
+    background: rgba(255,255,255,0.06);
+    color: var(--ink);
+  }
+
+  /* range slider */
+  .range-row{
+    display: flex; align-items: center; gap: 12px;
+  }
+  .range-row input[type=range]{
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.12);
+    outline: none;
+  }
+  .range-row input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid #171310;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: transform .15s ease;
+  }
+  .range-row input[type=range]::-webkit-slider-thumb:hover{
+    transform: scale(1.2);
+  }
+  .range-row input[type=range]::-moz-range-thumb{
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid #171310;
+  }
+  .range-val{
+    font-size: 12px; color: var(--ink-dim);
+    min-width: 36px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* color picker row */
+  .color-row{
+    display: flex; gap: 10px; align-items: center;
+  }
+  .color-row input[type=color]{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 36px; height: 36px;
+    border: 2px solid var(--glass-border);
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .color-row input[type=color]::-webkit-color-swatch-wrapper{ padding: 2px; }
+  .color-row input[type=color]::-webkit-color-swatch{ border: none; border-radius: 4px; }
+  .color-row span{ font-size: 12.5px; color: var(--ink-dim); }
+
+  /* checkbox toggle */
+  .toggle-row{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0;
+  }
+  .toggle-row .toggle-label{ font-size: 13.5px; color: var(--ink); }
+  .toggle-switch{
+    position: relative;
+    width: 42px; height: 24px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.12);
+    cursor: pointer;
+    transition: background .2s ease;
+    border: none;
+    padding: 0;
+  }
+  .toggle-switch::after{
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--ink);
+    transition: transform .2s cubic-bezier(.23,1,.32,1), background .2s ease;
+  }
+  .toggle-switch.on{ background: var(--accent); }
+  .toggle-switch.on::after{ transform: translateX(18px); background: #1a1208; }
+
+  .btnrow{ display:flex; gap:8px; flex-wrap:wrap; }
+  .btn{
+    padding: 9px 13px;
+    border-radius: 9px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.06);
+    color: var(--ink);
+    font-size: 13px;
+    cursor:pointer;
+    font-family: inherit;
+    transition: all .2s ease;
+  }
+  .btn:hover{ background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0); }
+  .btn.primary{ background: var(--accent); border-color: var(--accent); color: #1a1208; font-weight:600; }
+  .btn.primary:hover{ filter: brightness(1.1); }
+  .btn.danger{ color:#e8907a; }
+  .btn.danger:hover{ background: rgba(232,144,122,0.1); }
+  .hint{ font-size: 11.5px; color: var(--ink-dim); margin-top: 8px; line-height:1.5; }
+  input[type=file]{ display:none; }
+
+  .divider{
+    height: 1px;
+    background: var(--glass-border);
+    margin: 18px 0;
+  }
+
+  /* preset accent swatches */
+  .accent-presets{
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .accent-swatch{
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .accent-swatch:hover{ transform: scale(1.15); }
+  .accent-swatch.active{ border-color: var(--ink); box-shadow: 0 0 0 2px rgba(255,255,255,0.2); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 768px){
+    .scene{ padding: clamp(14px, 3vw, 24px); }
+    .searchwrap{ width: min(500px, 90vw); }
+    .links{ width: min(600px, 94vw); }
+  }
+
+  @media (max-width: 480px){
+    .engine-pill{ display:none; }
+    .searchbar{ padding: 12px 14px; }
+    .searchbar input{ font-size: 14px; }
+    .clock{ font-size: clamp(48px, 16vw, 80px); }
+    .date{ font-size: 13px; }
+    .link-chip{ padding: 8px 12px; font-size: 12.5px; }
+    .bottombar{ flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+    .credit{ max-width: 100%; }
+    .panel{ width: 100vw; }
+    .middle{ gap: clamp(12px, 2.5vw, 20px); }
+  }
+
+  @media (max-width: 360px){
+    .clock{ font-size: clamp(40px, 14vw, 64px); }
+    .searchwrap{ width: 96vw; }
+    .links{ gap: 8px; }
+  }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div id="wallpaper" class="empty"></div>
+
+  <div class="scene">
+    <div class="topbar anim-enter anim-d1">
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </div>
+
+    <div class="middle">
+      <div class="greeting anim-enter anim-d2" id="greeting"></div>
+
+      <div class="clock-wrap">
+        <div class="clock" id="clock">--:--</div>
+        <div class="date" id="date">&nbsp;</div>
+      </div>
+
+      <div class="searchwrap anim-enter anim-d3">
+        <form class="searchbar" id="searchForm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+          <input id="searchInput" type="text" placeholder="Search or type a URL" autocomplete="off" autofocus />
+          <select class="engine-pill" id="engineSelect" title="Search engine"></select>
+        </form>
+      </div>
+
+      <div class="links anim-enter anim-d4" id="links"></div>
+    </div>
+
+    <div class="bottombar anim-enter anim-d5">
+      <div class="credit" id="credit">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="panel" id="panel">
+    <h2>Settings <span class="close" id="closePanel">&times;</span></h2>
+
+    <!-- Clock -->
+    <div class="field">
+      <label>Clock language</label>
+      <div class="seg-toggle" id="langToggle">
+        <button data-val="en" class="active">English</button>
+        <button data-val="hr">Hrvatski</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Time format</label>
+      <div class="seg-toggle" id="timeFormatToggle">
+        <button data-val="24" class="active">24h</button>
+        <button data-val="12">12h</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="toggle-row">
+        <span class="toggle-label">Show seconds</span>
+        <button class="toggle-switch" id="showSecondsToggle" role="switch" aria-checked="false"></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Clock size</label>
+      <div class="range-row">
+        <input type="range" id="clockSizeRange" min="40" max="180" value="128" />
+        <span class="range-val" id="clockSizeVal">128px</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Clock position</label>
+      <div class="range-row">
+        <span style="font-size:11px; color:var(--ink-dim); min-width:14px;">↔</span>
+        <input type="range" id="clockXRange" min="-900" max="900" value="0" />
+        <span class="range-val" id="clockXVal">0</span>
+      </div>
+      <div class="range-row" style="margin-top:8px;">
+        <span style="font-size:11px; color:var(--ink-dim); min-width:14px;">↕</span>
+        <input type="range" id="clockYRange" min="-900" max="900" value="0" />
+        <span class="range-val" id="clockYVal">0</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Search position</label>
+      <div class="range-row">
+        <span style="font-size:11px; color:var(--ink-dim); min-width:14px;">↕</span>
+        <input type="range" id="searchYRange" min="-900" max="900" value="0" />
+        <span class="range-val" id="searchYVal">0</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>+Add button position</label>
+      <div class="range-row">
+        <span style="font-size:11px; color:var(--ink-dim); min-width:14px;">↕</span>
+        <input type="range" id="addBtnYRange" min="-900" max="900" value="0" />
+        <span class="range-val" id="addBtnYVal">0</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Greeting -->
+    <div class="field">
+      <label>Greeting (optional)</label>
+      <input type="text" id="greetingInput" placeholder="e.g. Good morning, friend" />
+      <div class="hint">Leave empty to hide. Shows above the clock.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Appearance -->
+    <div class="field">
+      <label>Accent color</label>
+      <div class="color-row">
+        <input type="color" id="accentColor" value="#4b99c9" />
+        <span id="accentHexLabel">#4b99c9</span>
+      </div>
+      <div class="accent-presets" id="accentPresets"></div>
+    </div>
+
+    <div class="field">
+      <label>Background overlay darkness</label>
+      <div class="range-row">
+        <input type="range" id="overlayRange" min="0" max="100" value="100" />
+        <span class="range-val" id="overlayVal">100%</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Gradient colors (no wallpaper)</label>
+      <div class="color-row">
+        <input type="color" id="gradA" value="#1d1915" />
+        <span>Top</span>
+        <input type="color" id="gradB" value="#14110e" />
+        <span>Bottom</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Wallpaper -->
+    <div class="field">
+      <label>Wallpaper</label>
+      <div class="btnrow">
+        <button class="btn primary" id="chooseWallpaper">Choose image…</button>
+        <button class="btn danger" id="clearWallpaper">Remove</button>
+      </div>
+      <input type="file" id="wallpaperInput" accept="image/*" />
+      <div class="hint">Stored only in this browser (localStorage). Large images may fail — try under ~3-4MB.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Search -->
+    <div class="field">
+      <label>Search engine</label>
+      <select id="engineSelectPanel"></select>
+    </div>
+
+    <div class="field">
+      <label>Credit text</label>
+      <input type="text" id="creditInput" placeholder="Photo by…" />
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Links -->
+    <div class="field">
+      <label>Quick links</label>
+      <div class="btnrow" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <input type="text" id="linkName" placeholder="Name">
+        <input type="text" id="linkUrl" placeholder="https://example.com">
+        <button class="btn" id="addLink">Add link</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <button class="btn danger" id="resetAll">Reset everything</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORE_KEY = "localstart_v2";
+
+  var ENGINES = {
+    google:     { name: "Google",     url: "https://www.google.com/search?q=" },
+    duckduckgo: { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=" },
+    bing:       { name: "Bing",       url: "https://www.bing.com/search?q=" },
+    brave:      { name: "Brave",      url: "https://search.brave.com/search?q=" },
+    startpage:  { name: "Startpage",  url: "https://www.startpage.com/sp/search?query=" },
+    ecosia:     { name: "Ecosia",     url: "https://www.ecosia.org/search?q=" }
+  };
+
+  var DEFAULT_LINKS = [];
+
+  var ACCENT_PRESETS = [
+    "#4b99c9", "#6c9bff", "#a78bfa", "#f472b6",
+    "#fb923c", "#34d399", "#facc15", "#f87171"
+  ];
+
+  var DAYS_EN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var DAYS_HR = ["Nedjelja","Ponedjeljak","Utorak","Srijeda","Četvrtak","Petak","Subota"];
+  var MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var MONTHS_HR = ["siječnja","veljače","ožujka","travnja","svibnja","lipnja","srpnja","kolovoza","rujna","listopada","studenoga","prosinca"];
+
+  function $(id){ return document.getElementById(id); }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  function defaultState(){
+    return {
+      wallpaper: null,
+      engine: "duckduckgo",
+      credit: "",
+      links: DEFAULT_LINKS.slice(),
+      lang: "en",
+      timeFormat: "24",
+      showSeconds: false,
+      accentColor: "#4b99c9",
+      clockSize: 128,
+      clockX: 0,
+      clockY: 0,
+      searchY: 0,
+      addBtnY: 0,
+      overlayOpacity: 100,
+      gradA: "#1d1915",
+      gradB: "#14110e",
+      greeting: ""
+    };
+  }
+
+  var state = Object.assign(defaultState(), loadState() || {});
+
+  function save(){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      return true;
+    }catch(e){
+      alert("Couldn't save — the image is probably too large. Try a smaller file (under ~3-4MB).");
+      return false;
+    }
+  }
+
+  /* ---------- accent color ---------- */
+  function hexToRgb(hex){
+    var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return {r:r, g:g, b:b};
+  }
+  function applyAccent(){
+    var c = hexToRgb(state.accentColor);
+    var root = document.documentElement.style;
+    root.setProperty("--accent", state.accentColor);
+    root.setProperty("--accent-soft", "rgba("+c.r+","+c.g+","+c.b+",0.35)");
+    root.setProperty("--accent-glow", "rgba("+c.r+","+c.g+","+c.b+",0.18)");
+  }
+
+  /* ---------- clock ---------- */
+  function formatDate(d){
+    var lang = state.lang;
+    var dayName = lang === "hr" ? DAYS_HR[d.getDay()] : DAYS_EN[d.getDay()];
+    var monthName = lang === "hr" ? MONTHS_HR[d.getMonth()] : MONTHS_EN[d.getMonth()];
+    if(lang === "hr"){
+      return dayName + ", " + d.getDate() + ". " + monthName + " " + d.getFullYear() + ".";
+    }
+    return dayName + ", " + monthName + " " + d.getDate();
+  }
+
+  function formatTime(d){
+    var h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
+    var suffix = "";
+    if(state.timeFormat === "12"){
+      suffix = h >= 12 ? " PM" : " AM";
+      h = h % 12 || 12;
+    }
+    var pad = function(n){ return n < 10 ? "0" + n : "" + n; };
+    var str = pad(h) + ":" + pad(m);
+    if(state.showSeconds) str += ":" + pad(s);
+    return str + suffix;
+  }
+
+  function tick(){
+    var now = new Date();
+    $("clock").textContent = formatTime(now);
+    $("date").textContent = formatDate(now);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* ---------- wallpaper ---------- */
+  var wallpaperEl = $("wallpaper");
+  var creditEl = $("credit");
+
+  function applyWallpaper(){
+    if(state.wallpaper){
+      wallpaperEl.style.backgroundImage = "url(" + state.wallpaper + ")";
+      wallpaperEl.classList.remove("empty");
+    } else {
+      wallpaperEl.style.backgroundImage = "";
+      wallpaperEl.classList.add("empty");
+    }
+    creditEl.textContent = state.credit || "";
+  }
+
+  function applyOverlay(){
+    document.documentElement.style.setProperty("--overlay-opacity", (state.overlayOpacity / 100).toString());
+  }
+  function applyGradient(){
+    var root = document.documentElement.style;
+    root.setProperty("--grad-a", state.gradA);
+    root.setProperty("--grad-b", state.gradB);
+  }
+  function applyClockSize(){
+    document.documentElement.style.setProperty("--clock-size", state.clockSize + "px");
+  }
+  function applyClockPos(){
+    var root = document.documentElement.style;
+    root.setProperty("--clock-x", state.clockX + "px");
+    root.setProperty("--clock-y", state.clockY + "px");
+  }
+  function applySearchPos(){
+    document.documentElement.style.setProperty("--search-y", state.searchY + "px");
+  }
+  function applyAddBtnPos(){
+    document.documentElement.style.setProperty("--add-btn-y", state.addBtnY + "px");
+  }
+
+  function fileToDataURL(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(){ cb(reader.result); };
+    reader.readAsDataURL(file);
+  }
+
+  $("chooseWallpaper").addEventListener("click", function(){ $("wallpaperInput").click(); });
+  $("wallpaperInput").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    fileToDataURL(file, function(dataUrl){
+      state.wallpaper = dataUrl;
+      if(save()) applyWallpaper();
+    });
+  });
+  $("clearWallpaper").addEventListener("click", function(){
+    state.wallpaper = null;
+    save();
+    applyWallpaper();
+  });
+
+  /* ---------- search ---------- */
+  function populateEngineSelects(){
+    [$("engineSelect"), $("engineSelectPanel")].forEach(function(sel){
+      sel.innerHTML = "";
+      Object.keys(ENGINES).forEach(function(key){
+        var opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = ENGINES[key].name;
+        if(key === state.engine) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.onchange = function(e){
+        state.engine = e.target.value;
+        save();
+        populateEngineSelects();
+      };
+    });
+  }
+
+  function looksLikeUrl(q){
+    return /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}([\/?#].*)?$/i.test(q.trim());
+  }
+
+  $("searchForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var q = $("searchInput").value.trim();
+    if(!q) return;
+    if(looksLikeUrl(q)){
+      window.location.href = /^https?:\/\//i.test(q) ? q : "https://" + q;
+    } else {
+      var engine = ENGINES[state.engine] || ENGINES.duckduckgo;
+      window.location.href = engine.url + encodeURIComponent(q);
+    }
+  });
+
+  /* ---------- greeting ---------- */
+  function applyGreeting(){
+    $("greeting").textContent = state.greeting || "";
+    $("greeting").style.display = state.greeting ? "" : "none";
+  }
+
+  /* ---------- segmented toggle helper ---------- */
+  function setupSegToggle(el, key, onChange){
+    var btns = el.querySelectorAll("button");
+    btns.forEach(function(btn){
+      if(btn.dataset.val === state[key]) btn.classList.add("active");
+      else btn.classList.remove("active");
+      btn.addEventListener("click", function(){
+        state[key] = btn.dataset.val;
+        save();
+        btns.forEach(function(b){ b.classList.remove("active"); });
+        btn.classList.add("active");
+        if(onChange) onChange();
+      });
+    });
+  }
+
+  /* ---------- toggle switch helper ---------- */
+  function setupToggle(btnEl, key, onChange){
+    if(state[key]) btnEl.classList.add("on");
+    else btnEl.classList.remove("on");
+    btnEl.setAttribute("aria-checked", !!state[key]);
+    btnEl.addEventListener("click", function(){
+      state[key] = !state[key];
+      save();
+      btnEl.classList.toggle("on", state[key]);
+      btnEl.setAttribute("aria-checked", !!state[key]);
+      if(onChange) onChange();
+    });
+  }
+
+  /* ---------- links ---------- */
+  function renderLinks(){
+    var wrap = $("links");
+    wrap.innerHTML = "";
+    state.links.forEach(function(link, idx){
+      var a = document.createElement("a");
+      a.className = "link-chip";
+      a.href = link.url;
+      a.style.animationDelay = (0.5 + idx * 0.07) + "s";
+      var dot = document.createElement("span");
+      dot.className = "link-dot";
+      a.appendChild(dot);
+      var label = document.createElement("span");
+      label.textContent = link.name;
+      a.appendChild(label);
+      var rm = document.createElement("span");
+      rm.className = "remove";
+      rm.textContent = "✕";
+      rm.title = "Remove";
+      rm.addEventListener("click", function(ev){
+        ev.preventDefault(); ev.stopPropagation();
+        state.links.splice(idx, 1);
+        save();
+        renderLinks();
+      });
+      a.appendChild(rm);
+      wrap.appendChild(a);
+    });
+
+    var add = document.createElement("button");
+    add.type = "button";
+    add.className = "link-chip add-chip";
+    add.textContent = "+ add";
+    add.addEventListener("click", openPanel);
+    wrap.appendChild(add);
+  }
+
+  $("addLink").addEventListener("click", function(){
+    var name = $("linkName").value.trim();
+    var url = $("linkUrl").value.trim();
+    if(!name || !url) return;
+    if(!/^https?:\/\//i.test(url)) url = "https://" + url;
+    state.links.push({ name: name, url: url });
+    save();
+    renderLinks();
+    $("linkName").value = "";
+    $("linkUrl").value = "";
+  });
+
+  /* ---------- panel ---------- */
+  var panel = $("panel");
+  var scrim = $("scrim");
+
+  function openPanel(){
+    $("creditInput").value = state.credit || "";
+    $("greetingInput").value = state.greeting || "";
+    panel.classList.add("open");
+    scrim.classList.add("open");
+  }
+  function closePanelFn(){
+    panel.classList.remove("open");
+    scrim.classList.remove("open");
+  }
+  $("settingsBtn").addEventListener("click", openPanel);
+  $("closePanel").addEventListener("click", closePanelFn);
+  scrim.addEventListener("click", closePanelFn);
+
+  $("creditInput").addEventListener("input", function(e){
+    state.credit = e.target.value;
+    save();
+    applyWallpaper();
+  });
+
+  $("greetingInput").addEventListener("input", function(e){
+    state.greeting = e.target.value;
+    save();
+    applyGreeting();
+  });
+
+  /* ---------- accent presets ---------- */
+  function renderAccentPresets(){
+    var wrap = $("accentPresets");
+    wrap.innerHTML = "";
+    ACCENT_PRESETS.forEach(function(hex){
+      var btn = document.createElement("button");
+      btn.className = "accent-swatch" + (hex === state.accentColor ? " active" : "");
+      btn.style.background = hex;
+      btn.title = hex;
+      btn.addEventListener("click", function(){
+        state.accentColor = hex;
+        save();
+        applyAccent();
+        $("accentColor").value = hex;
+        $("accentHexLabel").textContent = hex;
+        renderAccentPresets();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  $("accentColor").addEventListener("input", function(e){
+    state.accentColor = e.target.value;
+    save();
+    applyAccent();
+    $("accentHexLabel").textContent = e.target.value;
+    renderAccentPresets();
+  });
+
+  /* ---------- overlay slider ---------- */
+  $("overlayRange").addEventListener("input", function(e){
+    state.overlayOpacity = parseInt(e.target.value);
+    $("overlayVal").textContent = state.overlayOpacity + "%";
+    save();
+    applyOverlay();
+  });
+
+  /* ---------- clock size slider ---------- */
+  $("clockSizeRange").addEventListener("input", function(e){
+    state.clockSize = parseInt(e.target.value);
+    $("clockSizeVal").textContent = state.clockSize + "px";
+    save();
+    applyClockSize();
+  });
+
+  /* ---------- clock position sliders ---------- */
+  $("clockXRange").addEventListener("input", function(e){
+    state.clockX = parseInt(e.target.value);
+    $("clockXVal").textContent = state.clockX;
+    save();
+    applyClockPos();
+  });
+  $("clockYRange").addEventListener("input", function(e){
+    state.clockY = parseInt(e.target.value);
+    $("clockYVal").textContent = state.clockY;
+    save();
+    applyClockPos();
+  });
+
+  /* ---------- search position slider ---------- */
+  $("searchYRange").addEventListener("input", function(e){
+    state.searchY = parseInt(e.target.value);
+    $("searchYVal").textContent = state.searchY;
+    save();
+    applySearchPos();
+  });
+
+  /* ---------- add button position slider ---------- */
+  $("addBtnYRange").addEventListener("input", function(e){
+    state.addBtnY = parseInt(e.target.value);
+    $("addBtnYVal").textContent = state.addBtnY;
+    save();
+    applyAddBtnPos();
+  });
+
+  /* ---------- gradient colors ---------- */
+  $("gradA").addEventListener("input", function(e){
+    state.gradA = e.target.value;
+    save();
+    applyGradient();
+  });
+  $("gradB").addEventListener("input", function(e){
+    state.gradB = e.target.value;
+    save();
+    applyGradient();
+  });
+
+  /* ---------- reset ---------- */
+  $("resetAll").addEventListener("click", function(){
+    if(!confirm("Reset everything back to defaults?")) return;
+    state = defaultState();
+    save();
+    applyAccent();
+    applyWallpaper();
+    applyOverlay();
+    applyGradient();
+    applyClockSize();
+    applyClockPos();
+    applySearchPos();
+    applyAddBtnPos();
+    applyGreeting();
+    populateEngineSelects();
+    renderLinks();
+    renderAccentPresets();
+    syncUI();
+    tick();
+    closePanelFn();
+  });
+
+  /* ---------- sync UI from state (no listeners) ---------- */
+  function syncUI(){
+    // segmented toggles
+    [$("langToggle"), $("timeFormatToggle")].forEach(function(el){
+      var key = el === $("langToggle") ? "lang" : "timeFormat";
+      el.querySelectorAll("button").forEach(function(btn){
+        btn.classList.toggle("active", btn.dataset.val === state[key]);
+      });
+    });
+    // boolean toggle
+    $("showSecondsToggle").classList.toggle("on", !!state.showSeconds);
+    $("showSecondsToggle").setAttribute("aria-checked", !!state.showSeconds);
+    // sliders
+    $("clockSizeRange").value = state.clockSize;
+    $("clockSizeVal").textContent = state.clockSize + "px";
+    $("clockXRange").value = state.clockX;
+    $("clockXVal").textContent = state.clockX;
+    $("clockYRange").value = state.clockY;
+    $("clockYVal").textContent = state.clockY;
+    $("searchYRange").value = state.searchY;
+    $("searchYVal").textContent = state.searchY;
+    $("addBtnYRange").value = state.addBtnY;
+    $("addBtnYVal").textContent = state.addBtnY;
+    $("overlayRange").value = state.overlayOpacity;
+    $("overlayVal").textContent = state.overlayOpacity + "%";
+    // colors
+    $("accentColor").value = state.accentColor;
+    $("accentHexLabel").textContent = state.accentColor;
+    $("gradA").value = state.gradA;
+    $("gradB").value = state.gradB;
+    // inputs
+    $("greetingInput").value = state.greeting || "";
+    $("creditInput").value = state.credit || "";
+  }
+
+  /* ---------- init ---------- */
+  // set up one-time listeners for toggles
+  setupSegToggle($("langToggle"), "lang", tick);
+  setupSegToggle($("timeFormatToggle"), "timeFormat", tick);
+  setupToggle($("showSecondsToggle"), "showSeconds");
+
+  // apply visual state
+  applyAccent();
+  applyWallpaper();
+  applyOverlay();
+  applyGradient();
+  applyClockSize();
+  applyClockPos();
+  applySearchPos();
+  applyAddBtnPos();
+  applyGreeting();
+  populateEngineSelects();
+  renderLinks();
+  renderAccentPresets();
+  syncUI();
+})();
+</script>
+</body>
+</html>
