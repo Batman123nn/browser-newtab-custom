@@ -198,7 +198,14 @@
   $("searchForm").addEventListener("submit", function(e){
     e.preventDefault();
     var q = $("searchInput").value.trim();
-    if(!q) return;
+    if(!q){
+      var submit = document.querySelector(".search-submit");
+      submit.classList.remove("jiggle");
+      void submit.offsetWidth;
+      submit.classList.add("jiggle");
+      $("searchInput").focus();
+      return;
+    }
     hideSuggestions();
     if(looksLikeUrl(q)){
       window.location.href = /^https?:\/\//i.test(q) ? q : "https://" + q;
@@ -560,9 +567,30 @@
   syncUI();
 
   /* ---------- Focus search input ---------- */
-  setTimeout(function(){
-    $("searchInput").focus();
-  }, 200);
+  function focusSearchInput(){
+    var input = $("searchInput");
+    if(!input || panel.classList.contains("open")) return;
+    if(document.activeElement === document.body ||
+       document.activeElement === document.documentElement ||
+       document.activeElement === input){
+      window.focus();
+      input.focus({ preventScroll: true });
+    }
+  }
+
+  focusSearchInput();
+  window.addEventListener("load", focusSearchInput);
+  window.addEventListener("pageshow", focusSearchInput);
+
+  // Brave can finish activating a New Tab after the page loads.
+  var focusAttempts = 0;
+  var focusTimer = setInterval(function(){
+    focusSearchInput();
+    focusAttempts++;
+    if(focusAttempts >= 20 || document.activeElement === $("searchInput")){
+      clearInterval(focusTimer);
+    }
+  }, 100);
 
   /* ---------- URL-based search ---------- */
   (function(){
