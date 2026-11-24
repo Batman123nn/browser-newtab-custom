@@ -549,16 +549,13 @@
 
   /* ---------- URL-based search ---------- */
   (function(){
-    var path = window.location.pathname;
-    var base = "/browser-newtab-custom";
-    if(path.startsWith(base + "/")){
-      var query = decodeURIComponent(path.slice(base.length + 1)).replace(/\/+$/, "");
-      if(query){
-        $("searchInput").value = query;
-        setTimeout(function(){
-          $("searchForm").dispatchEvent(new Event("submit"));
-        }, 100);
-      }
+    var params = new URLSearchParams(window.location.search);
+    var query = params.get("q");
+    if(query){
+      $("searchInput").value = query;
+      setTimeout(function(){
+        $("searchForm").dispatchEvent(new Event("submit"));
+      }, 100);
     }
   })();
 })();
