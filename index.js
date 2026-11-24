@@ -49,6 +49,7 @@
       clockY: 0,
       searchY: 0,
       addBtnY: 0,
+      showAddButton: true,
       overlayOpacity: 100,
       gradA: "#1d1915",
       gradB: "#14110e",
@@ -243,7 +244,26 @@
   }
 
   function fetchSuggestions(query){
-    // Use JSONP to bypass CORS — works from any domain
+    // MV3 extensions cannot load remote JSONP scripts, so use
+    // an extension-authorized request there. Normal pages use JSONP.
+    if(window.location.protocol === "chrome-extension:"){
+      fetch("https://suggestqueries.google.com/complete/search?client=firefox&q=" +
+        encodeURIComponent(query))
+        .then(function(response){
+          if(!response.ok) throw new Error("HTTP " + response.status);
+          return response.json();
+        })
+        .then(function(data){
+          var items = (data && Array.isArray(data[1])) ? data[1] : [];
+          showSuggestions(items.slice(0, 8));
+        })
+        .catch(function(){
+          hideSuggestions();
+        });
+      return;
+    }
+
+    // JSONP bypasses CORS for normal HTTP/HTTPS pages.
     var callbackName = "_sugCb_" + Date.now();
     var script = document.createElement("script");
     script.src = "https://suggestqueries.google.com/complete/search?client=chrome&q=" +
@@ -353,7 +373,7 @@
 
     var add = document.createElement("button");
     add.type = "button";
-    add.className = "link-chip add-chip";
+    add.className = "link-chip add-chip" + (state.showAddButton ? "" : " hidden");
     add.textContent = "+ add";
     add.addEventListener("click", openPanel);
     wrap.appendChild(add);
@@ -522,6 +542,8 @@
     // boolean toggle
     $("showSecondsToggle").classList.toggle("on", !!state.showSeconds);
     $("showSecondsToggle").setAttribute("aria-checked", !!state.showSeconds);
+    $("showAddButtonToggle").classList.toggle("on", !!state.showAddButton);
+    $("showAddButtonToggle").setAttribute("aria-checked", !!state.showAddButton);
     // sliders
     $("clockSizeRange").value = state.clockSize;
     $("clockSizeVal").textContent = state.clockSize + "px";
@@ -550,6 +572,7 @@
   setupSegToggle($("langToggle"), "lang", tick);
   setupSegToggle($("timeFormatToggle"), "timeFormat", tick);
   setupToggle($("showSecondsToggle"), "showSeconds");
+  setupToggle($("showAddButtonToggle"), "showAddButton", renderLinks);
 
   // apply visual state
   applyAccent();

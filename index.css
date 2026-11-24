@@ -398,6 +398,7 @@
     transition: top .3s ease;
   }
   .add-chip:hover{ color: var(--ink); background: var(--glass); }
+  .add-chip.hidden{ display: none; }
 
   /* ---------- bottombar ---------- */
   .bottombar{
