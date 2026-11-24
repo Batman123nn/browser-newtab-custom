@@ -236,19 +236,31 @@
   }
 
   function fetchSuggestions(query){
-    var url = "https://duckduckgo.com/ac/?q=" + encodeURIComponent(query);
-    fetch(url)
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if(Array.isArray(data)){
-          var items = data.map(function(item){ return item.phrase; });
-          showSuggestions(items.slice(0, 8));
-        }
-      })
-      .catch(function(err){
-        console.warn("Suggestions failed:", err);
-        hideSuggestions();
-      });
+    // Use JSONP to bypass CORS — works from any domain
+    var callbackName = "_sugCb_" + Date.now();
+    var script = document.createElement("script");
+    script.src = "https://suggestqueries.google.com/complete/search?client=chrome&q=" +
+      encodeURIComponent(query) + "&callback=" + callbackName;
+
+    window[callbackName] = function(data){
+      // Google returns: ["query", ["suggestion1", "suggestion2", ...]]
+      var items = (data && Array.isArray(data[1])) ? data[1] : [];
+      showSuggestions(items.slice(0, 8));
+      cleanup();
+    };
+
+    script.onerror = function(){
+      console.warn("Suggestions failed to load");
+      hideSuggestions();
+      cleanup();
+    };
+
+    function cleanup(){
+      delete window[callbackName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    document.head.appendChild(script);
   }
 
   searchInput.addEventListener("input", function(e){
