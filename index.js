@@ -546,4 +546,19 @@
   renderLinks();
   renderAccentPresets();
   syncUI();
+
+  /* ---------- URL-based search ---------- */
+  (function(){
+    var path = window.location.pathname;
+    var base = "/browser-newtab-custom";
+    if(path.startsWith(base + "/")){
+      var query = decodeURIComponent(path.slice(base.length + 1)).replace(/\/+$/, "");
+      if(query){
+        $("searchInput").value = query;
+        setTimeout(function(){
+          $("searchForm").dispatchEvent(new Event("submit"));
+        }, 100);
+      }
+    }
+  })();
 })();
