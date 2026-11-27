@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>New Tab</title>
+<link rel="icon" type="image/png" sizes="32x32" href="Assets/icons/internet-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="Assets/icons/internet-16.png">
+<link rel="apple-touch-icon" href="Assets/icons/internet-128.png">
 <link rel="stylesheet" href="index.css">
 </head>
 
@@ -13,6 +16,9 @@
 
   <div class="scene">
     <div class="topbar anim-enter anim-d1">
+      <button class="icon-btn" id="shuffleBtn" title="New wallpaper" aria-label="New wallpaper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"></path><path d="M4 20 21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+      </button>
       <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       </button>
@@ -164,12 +170,32 @@
     <!-- Wallpaper -->
     <div class="field">
       <label>Wallpaper</label>
+      <div class="toggle-row">
+        <span class="toggle-label">Random Brave wallpaper</span>
+        <button class="toggle-switch" id="braveShuffleToggle" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="hint">A different authentic Brave photo on every load, automatically. Never repeats back-to-back.</div>
+      <div class="btnrow" style="margin-top:10px;">
+        <button class="btn primary" id="newWallpaperBtn">New wallpaper now</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="toggle-row">
+        <span class="toggle-label">Show photo credit</span>
+        <button class="toggle-switch on" id="showPhotoCreditToggle" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="hint">Turn off to hide the author watermark shown under the clock.</div>
+    </div>
+
+    <div class="field">
+      <label>Your own wallpaper</label>
       <div class="btnrow">
-        <button class="btn primary" id="chooseWallpaper">Choose image…</button>
+        <button class="btn" id="chooseWallpaper">Choose image…</button>
         <button class="btn danger" id="clearWallpaper">Remove</button>
       </div>
       <input type="file" id="wallpaperInput" accept="image/*" />
-      <div class="hint">Stored only in this browser (localStorage). Large images may fail — try under ~3-4MB.</div>
+      <div class="hint">Choosing an image turns off random Brave wallpapers. Stored only in this browser (localStorage). Large images may fail — try under ~3-4MB.</div>
     </div>
 
     <div class="divider"></div>

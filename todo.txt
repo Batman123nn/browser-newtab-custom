@@ -1,0 +1,106 @@
+TODO — Custom New Tab: random authentic Brave wallpapers, cross-browser + GitHub Pages
+=====================================================================================
+
+1. Collect ~45-47 AUTHENTIC Brave new-tab wallpapers (NO sponsored/takeover images)
+   - Early 2019 set: ntp-1.webp .. ntp-16.webp
+     source: brave/brave-core @ 33ed8c49, components/img/newtab/
+     credits: components/brave_new_tab_ui/data/backgrounds.ts @ 33ed8c49
+   - Fall 2019 set: 15 named *.webp files
+     source: brave/brave-core @ 4f2639da, components/img/newtab/backgrounds/
+     credits: components/brave_new_tab_ui/data/backgrounds.ts @ 4f2639da
+   - 2020/2021 set: 15 named *.avif files
+     source: brave/brave-core @ fb83ebc4, components/img/newtab/backgrounds/
+     credits: components/brave_new_tab_ui/data/backgrounds.ts @ fb83ebc4
+   - Current default: dylan-malval_sea-min.webp (master) — Dylan Malval
+   - Exclude anything from branded-wallpaper / sponsored-images / New Tab Takeover.
+
+2. Convert/resize every image to JPEG (~1920x1080 max, quality ~80) and store in
+   Assets/wallpapers/brave/ with short stable filenames. Verify all files decode.
+
+3. index.js
+   - Add BRAVE_WALLPAPERS metadata array: { file, artist, link } for every image.
+   - Add state fields: braveShuffle (default true), lastBraveIndex (default -1).
+   - Random pick on every load, uniform over the whole array, never the same as the
+     immediately previous pick; save only lastBraveIndex to localStorage.
+   - Preload with new Image(); apply with fade; on error fall back to uploaded
+     wallpaper, then gradient.
+   - Credit line becomes a link: "Photo by <artist> · Brave" -> artist page.
+   - Add "Random Brave wallpaper" toggle, "New wallpaper now" button (panel) and
+     shuffle button (topbar). Uploading/removing a wallpaper turns shuffle off.
+   - Handle both chrome-extension: and moz-extension: for search suggestions.
+   - Keep JSONP path for normal pages / GitHub Pages / file://.
+
+4. index.html
+   - Topbar shuffle button (hidden while shuffle is off).
+   - Settings > Wallpaper: shuffle toggle, hint, "New wallpaper now" button.
+   - Credit element ready for an anchor.
+
+5. index.css
+   - Styles for shuffle button, hidden state, wallpaper fade-in, credit link.
+
+6. manifest.json
+   - Add browser_specific_settings.gecko.id for Firefox.
+   - Keep existing host permission for Google suggestions.
+
+7. 404.html
+   - Remove hardcoded /browser-newtab-custom base; derive base URL from location
+     so ?q= redirects work on GitHub Pages, locally, and under any folder name.
+
+8. README.md
+   - GitHub Pages deploy steps (works at repo subpath, all paths relative).
+   - Load-unpacked steps for Brave and Firefox.
+   - Ladybird: run as a normal page (no extension support).
+   - Document wallpaper source/attribution and settings.
+
+9. Verify
+   - 45+ valid JPEGs, credits match Brave's own attribution files, no sponsored images.
+   - node --check index.js; serve under /browser-newtab-custom/ and curl index + assets.
+   - Simulate repeated loads to confirm random picks and no back-to-back repeats.
+   - Confirm graceful offline/failed-image fallback.
+
+STATUS: DONE
+----------
+- 46 authentic Brave wallpapers downloaded, converted to JPEG and stored in
+  Assets/wallpapers/brave/ (13.0 MB total). All decode successfully; all
+  metadata matches Brave's own attribution files. One near-duplicate
+  (current default sea image) was removed.
+- index.js: 46-entry BRAVE_WALLPAPERS array, random pick with no back-to-back
+  repeat (last index kept in its own localStorage key), preload + fade,
+  linked credit line, shuffle button, panel toggle/button, uploaded-wallpaper
+  override, moz-extension: suggestion support.
+- index.html / index.css: shuffle button, wallpaper settings, fade + credit styles.
+- manifest.json: Firefox gecko ID added.
+- 404.html: base derived from the requested URL (works on GitHub Pages subpath,
+  user site and custom domain).
+- README.md: Pages, extension and standalone instructions.
+- Verified: node --check index.js passes; 0 repeats in 100,000 simulated picks;
+  all JS-referenced element IDs exist; HTTP-served page and wallpapers resolve
+  under /browser-newtab-custom/; credits match Brave attribution.
+
+FOLLOW-UP (user request)
+------------------------
+- Add Settings > Wallpaper > "Show photo credit" toggle (on by default) that
+  hides the author watermark line when turned off.
+- Make the search bar outline thicker (2px base, 3px on hover/focus/typing)
+  and more responsive (faster .16s transitions, brighter glow, typing class).
+- STATUS: DONE. node --check passes; all referenced IDs present.
+
+FOLLOW-UP 2 (user request)
+--------------------------
+- Added 40 more authentic Brave wallpapers from the live NTP Background Images
+  component found locally at
+  ~/.config/BraveSoftware/Brave-Browser/aoojcmojmmcbpfgoecoadbdpnagfchel/1.0.25
+  (photo.json attribution). Total is now 86; no near-duplicates.
+- Randomising now keeps a 12-pick history in its own localStorage key. A
+  wallpaper can appear at most twice in that window (never three times), and
+  never twice in a row. 200,000 simulated picks: 0 violations.
+- Tab favicon and extension icon now use Assets/icons/internet.png (with
+  generated 16/32/48/128px copies). index.html has favicon links; manifest.json
+  has icons + action.default_icon.
+- STATUS: DONE. node --check and JSON validation pass; all 86 files decode.
+
+FOLLOW-UP 3 (user request)
+--------------------------
+- Clicking anywhere on the search bar pill now focuses the input, not just the
+  text field in the middle. Engine selector and submit button keep their own
+  behavior. Added cursor:text to the bar. node --check passes.

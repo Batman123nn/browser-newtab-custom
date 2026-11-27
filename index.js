@@ -2,6 +2,11 @@
   "use strict";
 
   var STORE_KEY = "localstart_v2";
+  var WALLPAPER_INDEX_KEY = "localstart_brave_wallpaper_index";
+  var WALLPAPER_HISTORY_KEY = "localstart_brave_wallpaper_history";
+  var WALLPAPER_HISTORY_LENGTH = 12;
+  var MAX_RECENT_USES = 2;
+  var WALLPAPER_DIR = "Assets/wallpapers/brave/";
 
   var ENGINES = {
     google:     { name: "Google",     url: "https://www.google.com/search?q=" },
@@ -17,6 +22,97 @@
   var ACCENT_PRESETS = [
     "#4b99c9", "#6c9bff", "#a78bfa", "#f472b6",
     "#fb923c", "#34d399", "#facc15", "#f87171"
+  ];
+
+  // Authentic Brave New Tab wallpapers, with attribution from Brave's own
+  // backgrounds.ts files. No sponsored / New Tab Takeover images.
+  var BRAVE_WALLPAPERS = [
+    { f: "ntp-1.jpg", by: "Pok Rie", url: "https://www.pexels.com/@pok-rie-33563" },
+    { f: "ntp-2.jpg", by: "Jack Millard", url: "https://unsplash.com/@millarjb" },
+    { f: "ntp-3.jpg", by: "Buzz Andersen", url: "https://unsplash.com/@ldandersen" },
+    { f: "ntp-4.jpg", by: "Frank McKenna", url: "https://unsplash.com/@frankiefoto" },
+    { f: "ntp-5.jpg", by: "SpaceX", url: "https://www.flickr.com/photos/spacex/" },
+    { f: "ntp-6.jpg", by: "SpaceX", url: "https://www.flickr.com/photos/spacex/" },
+    { f: "ntp-7.jpg", by: "SpaceX", url: "https://www.flickr.com/photos/spacex/" },
+    { f: "ntp-8.jpg", by: "Will Christiansen", url: "https://www.theskyfolk.com" },
+    { f: "ntp-9.jpg", by: "Will Christiansen", url: "https://www.theskyfolk.com" },
+    { f: "ntp-10.jpg", by: "Will Christiansen", url: "https://www.theskyfolk.com" },
+    { f: "ntp-11.jpg", by: "Nout Gons", url: "https://www.instagram.com/ntgns/" },
+    { f: "ntp-12.jpg", by: "Artem Bali", url: "https://www.pexels.com/@belart84" },
+    { f: "ntp-13.jpg", by: "Hristo Fidanov", url: "https://www.pexels.com/@hristo-fidanov-520662" },
+    { f: "ntp-14.jpg", by: "Life of Pix", url: "https://www.pexels.com/@life-of-pix" },
+    { f: "ntp-15.jpg", by: "Cassie Boca", url: "https://unsplash.com/@cassieboca" },
+    { f: "ntp-16.jpg", by: "Braden Jarvis", url: "https://unsplash.com/@jarvisphoto" },
+    { f: "anders-jilden.jpg", by: "Anders Jildén", url: "https://unsplash.com/@andersjilden" },
+    { f: "andreas-gucklhorn.jpg", by: "Andreas Gücklhorn", url: "https://unsplash.com/@draufsicht" },
+    { f: "andy-mai.jpg", by: "Andy Mai", url: "https://unsplash.com/@veroz" },
+    { f: "annie-spratt.jpg", by: "Annie Spratt", url: "https://unsplash.com/@anniespratt" },
+    { f: "anton-repponen.jpg", by: "Anton Repponen", url: "https://unsplash.com/@repponen" },
+    { f: "ben-karpinski.jpg", by: "Ben Karpinski", url: "https://www.benkarpinski.com/landscapes" },
+    { f: "dc-cavalleri.jpg", by: "D.C. Cavalleri", url: "https://gradivis.com" },
+    { f: "joe-gardner.jpg", by: "Joe Gardner", url: "https://unsplash.com/@josephgardnerphotography" },
+    { f: "louis-kim.jpg", by: "Louis Kim", url: "http://louiskimphotography.com" },
+    { f: "matt-palmer.jpg", by: "Matt Palmer", url: "https://unsplash.com/@mattpalmer" },
+    { f: "oliwier-gesla.jpg", by: "Oliwier Gesla", url: "https://www.instagram.com/oliwiergesla/" },
+    { f: "svalbard-jerol-soibam.jpg", by: "Jerol Soibam", url: "https://www.instagram.com/jerol_soibam" },
+    { f: "will-christiansen-glacier-peak.jpg", by: "Will Christiansen", url: "https://www.theskyfolk.com" },
+    { f: "will-christiansen-ice.jpg", by: "Will Christiansen", url: "https://www.theskyfolk.com" },
+    { f: "xavier-balderas-cejudo.jpg", by: "Xavier Balderas Cejudo", url: "https://unsplash.com/@xavibalderas" },
+    { f: "alex-plesovskich.jpg", by: "Alex Plesovskich", url: "https://unsplash.com/@aples" },
+    { f: "andre-benz.jpg", by: "Andre Benz", url: "https://unsplash.com/@trapnation" },
+    { f: "corwin-prescott_beach.jpg", by: "Corwin Prescott", url: null },
+    { f: "corwin-prescott_canyon.jpg", by: "Corwin Prescott", url: null },
+    { f: "corwin-prescott_crestone.jpg", by: "Corwin Prescott", url: null },
+    { f: "corwin-prescott_olympic.jpg", by: "Corwin Prescott", url: null },
+    { f: "dylan-malval_alps.jpg", by: "Dylan Malval", url: "https://www.instagram.com/vass_captures/" },
+    { f: "dylan-malval_sea.jpg", by: "Dylan Malval", url: "https://www.instagram.com/vass_captures/" },
+    { f: "sora-sagano.jpg", by: "Sora Sogano", url: "https://unsplash.com/@sorasagano" },
+    { f: "spencer-moore_desert.jpg", by: "Spencer M. Moore", url: "https://www.smoorevisuals.com/landscapes" },
+    { f: "spencer-moore_fern.jpg", by: "Spencer M. Moore", url: "https://www.smoorevisuals.com/landscapes" },
+    { f: "spencer-moore_lake.jpg", by: "Spencer M. Moore", url: "https://www.smoorevisuals.com/landscapes" },
+    { f: "spencer-moore_ocean.jpg", by: "Spencer M. Moore", url: "https://www.smoorevisuals.com/landscapes" },
+    { f: "su-san-lee.jpg", by: "Su San Lee", url: "https://unsplash.com/@blackodc" },
+    { f: "zane-lee.jpg", by: "Zane Lee", url: "https://unsplash.com/@zane4004" },
+    { f: "pascal-debrunner.jpg", by: "Pascal Debrunner", url: "https://unsplash.com/photos/rugged-mountain-peaks-and-grassy-ridges-at-dawn-Z2720kCJg6I" },
+    { f: "rafael-peier2.jpg", by: "Rafael Peier", url: "https://unsplash.com/photos/sand-dunes-with-long-shadows-dESI6T4gaN4" },
+    { f: "david-becker.jpg", by: "David Becker", url: "https://unsplash.com/photos/vibrant-sunset-illuminates-ocean-waves-crashing-on-a-rocky-shore--ZQfwGY-RAo" },
+    { f: "hunter-newton.jpg", by: "Hunter Newton", url: "https://unsplash.com/photos/waterfall-and-rocky-stream-flow-through-a-lush-dark-forest-TWrKDYt-vVM" },
+    { f: "andrew-svk.jpg", by: "Andrew Svk", url: "https://unsplash.com/photos/a-mountain-range-with-a-pink-sky-in-the-background-150fZ07GQqs" },
+    { f: "daniel-schwarz.jpg", by: "Daniel Schwarz", url: "https://unsplash.com/photos/lake-surrounded-by-forested-mountains-under-a-blue-sky-ZeGQ22v9Zhk" },
+    { f: "gabriele-merlino.jpg", by: "Gabriele Merlino", url: "https://unsplash.com/photos/rowboats-on-clear-turquoise-water-fa5so58oDAI" },
+    { f: "freestocks.jpg", by: "Freestocks", url: "https://unsplash.com/photos/green-field-plains-under-cloudy-sky-Gqc1jl2kd1U" },
+    { f: "ken-cheung.jpg", by: "Ken Cheung", url: "https://unsplash.com/photos/a-sandbar-snakes-through-the-turquoise-ocean-water-gzMBvmSl95U" },
+    { f: "kristaps-ungurs.jpg", by: "Kristaps Ungurs", url: "https://unsplash.com/photos/dark-lake-surrounded-by-vibrant-green-forest-aerial-view-bVy49uEJbpw" },
+    { f: "john-murphey.jpg", by: "John Murphey", url: "https://unsplash.com/photos/the-sun-is-setting-over-the-sand-dunes-Mag-3qz3gko" },
+    { f: "fudo-jahic.jpg", by: "Fudo Jahic", url: "https://unsplash.com/photos/brown-rock-formation-under-blue-sky-during-daytime-PQf2Vv7xWjo" },
+    { f: "benjamin-hibbert.jpg", by: "Benjamin Hibbert", url: "https://unsplash.com/photos/rugged-coastal-rock-formations-with-waves-crashing-4IH2rRlCnKs" },
+    { f: "juho-luomala.jpg", by: "Juho Luomala", url: "https://unsplash.com/photos/aurora-borealis-over-a-snowy-forest-road-pzBTqFBmEJc" },
+    { f: "pascal-debrunner2.jpg", by: "Pascal Debrunner", url: "https://unsplash.com/photos/wildflowers-by-glacial-mountain-lake-d7Bvh_2cFnA" },
+    { f: "fer-troulik.jpg", by: "Fer Troulik", url: "https://unsplash.com/photos/modern-building-facade-with-vertical-fins-and-a-glass-walkway-4Pf98CHLUzg" },
+    { f: "mike-hindle.jpg", by: "Mike Hindle", url: "https://unsplash.com/photos/a-black-and-white-photo-of-a-spiral-staircase-tjafmz6trWg" },
+    { f: "tom-moser.jpg", by: "Tom Moser", url: "https://unsplash.com/photos/a-city-with-many-buildings-uR6VahqorEk" },
+    { f: "oliver-plattner.jpg", by: "Oliver Plattner", url: "https://unsplash.com/photos/golden-gate-bridge-in-san-francisco-Plt0vHDRb9U" },
+    { f: "massimiliano-morosinotto.jpg", by: "Massimiliano Morosinotto", url: "https://unsplash.com/photos/low-angle-photography-of-buildings-YMPUJexvNa8" },
+    { f: "anton-volnuhin.jpg", by: "Anton Volnuhin", url: "https://unsplash.com/photos/a-shadow-of-a-building-on-a-wall-N8ucHGuZtUs" },
+    { f: "rafael-peier.jpg", by: "Rafael Peier", url: "https://unsplash.com/photos/close-up-of-vibrant-orange-flower-petals-with-dew-drops-S1vS1KgQCug" },
+    { f: "neom.jpg", by: "Neom", url: "https://unsplash.com/photos/a-large-group-of-fish-swimming-over-a-coral-reef-bOMVTvE2QFU" },
+    { f: "david-clode.jpg", by: "David Clode", url: "https://unsplash.com/photos/a-chameleons-colorful-tail-curled-into-a-spiral-on-black-oGmKb2DJHfA" },
+    { f: "elizabeth-gottwald.jpg", by: "Elizabeth Gottwald", url: "https://unsplash.com/photos/white-and-pink-herons-in-beach-IpbnuyBWQqY" },
+    { f: "ngoc-nguyen-phuong.jpg", by: "Ngoc Nguyen Phuong", url: "https://unsplash.com/photos/variegated-leaf-among-lush-green-foliage-M6BMH-9Aj8Q" },
+    { f: "daniil-komov.jpg", by: "Daniil Komov", url: "https://unsplash.com/photos/a-small-bird-sitting-on-top-of-a-dry-grass-dSZyPg9rCRA" },
+    { f: "fabio-sasso.jpg", by: "Fabio Sasso", url: "https://unsplash.com/photos/sunset-over-a-lake-seen-through-silhouetted-forest-trees-T_YG9paUo5I" },
+    { f: "lukasz-rawa.jpg", by: "Lukasz Rawa", url: "https://unsplash.com/photos/dark-green-leaves-with-red-veins-CdA2yxbG1hg" },
+    { f: "damian-kamp.jpg", by: "Damian Kamp", url: "https://unsplash.com/photos/dynamic-blue-ocean-waves-with-white-foam-and-motion-blur-NFALS3IsNBg" },
+    { f: "xiao-lou.jpg", by: "Xiao Lou", url: "https://unsplash.com/photos/abstract-blue-ice-formations-create-a-textured-pattern-rBDQ9WrnvUA" },
+    { f: "veli-batuhan.jpg", by: "Veli Batuhan Aytaç", url: "https://unsplash.com/photos/abstract-iridescent-curves-on-a-black-background-p-8ZW6wy1QM" },
+    { f: "daniil-silantev.jpg", by: "Daniil Silantev", url: "https://unsplash.com/photos/sunset-reflects-over-water-with-tall-grass-in-focus-xUfATl0k8Cg" },
+    { f: "milad-fakurian.jpg", by: "Milad Fakurian", url: "https://unsplash.com/photos/abstract-purple-and-pink-gradient-waves-nY14Fs8pxT8" },
+    { f: "daniel-olah.jpg", by: "Daniel Olah", url: "https://unsplash.com/photos/sand-dunes-under-starry-night-sky-6KQETG8J-zI" },
+    { f: "alex-oviedo.jpg", by: "Alex Oviedo", url: "https://alexovi.com/" },
+    { f: "mogli-maureal.jpg", by: "Mogli Maureal", url: "https://www.themogli.com/" },
+    { f: "nicholas-stankus.jpg", by: "Nicholas Stankus", url: "https://www.nixter.net/" },
+    { f: "matteo-menardi.jpg", by: "Matteo Menardi", url: "https://matteomenardimenego.com/" },
+    { f: "pedro-gomes.jpg", by: "Pedro Gomes", url: "https://unsplash.com/@mgomespedro" }
   ];
 
   var DAYS_EN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -53,15 +149,62 @@
       overlayOpacity: 100,
       gradA: "#1d1915",
       gradB: "#14110e",
-      greeting: ""
+      greeting: "",
+      braveShuffle: true,
+      showPhotoCredit: true,
+      lastBraveIndex: -1,
+      wallpaperHistory: []
     };
   }
 
   var state = Object.assign(defaultState(), loadState() || {});
 
+  function loadWallpaperHistory(){
+    try{
+      var parsed = JSON.parse(localStorage.getItem(WALLPAPER_HISTORY_KEY));
+      if(Array.isArray(parsed)){
+        return parsed.filter(function(n){
+          return typeof n === "number" && n >= 0 && n < BRAVE_WALLPAPERS.length;
+        }).slice(-WALLPAPER_HISTORY_LENGTH);
+      }
+    }catch(e){ /* ignore */ }
+
+    // Migrate the older single-index key.
+    try{
+      var old = parseInt(localStorage.getItem(WALLPAPER_INDEX_KEY), 10);
+      if(!isNaN(old) && old >= 0 && old < BRAVE_WALLPAPERS.length) return [old];
+    }catch(e){ /* ignore */ }
+    return [];
+  }
+
+  function saveWallpaperHistory(){
+    try{
+      localStorage.setItem(WALLPAPER_HISTORY_KEY, JSON.stringify(state.wallpaperHistory));
+      localStorage.setItem(WALLPAPER_INDEX_KEY, String(state.lastBraveIndex));
+    }catch(e){ /* non-fatal */ }
+  }
+
+  function rememberWallpaper(index){
+    state.wallpaperHistory.push(index);
+    if(state.wallpaperHistory.length > WALLPAPER_HISTORY_LENGTH){
+      state.wallpaperHistory.splice(0, state.wallpaperHistory.length - WALLPAPER_HISTORY_LENGTH);
+    }
+    state.lastBraveIndex = index;
+    saveWallpaperHistory();
+  }
+
+  state.wallpaperHistory = loadWallpaperHistory();
+  state.lastBraveIndex = state.wallpaperHistory.length ?
+    state.wallpaperHistory[state.wallpaperHistory.length - 1] : -1;
+
   function save(){
     try{
-      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      var toStore = Object.assign({}, state);
+      // Kept in its own tiny key so a large uploaded image doesn't get
+      // re-serialized every time a new wallpaper is picked.
+      delete toStore.lastBraveIndex;
+      delete toStore.wallpaperHistory;
+      localStorage.setItem(STORE_KEY, JSON.stringify(toStore));
       return true;
     }catch(e){
       alert("Couldn't save — the image is probably too large. Try a smaller file (under ~3-4MB).");
@@ -117,16 +260,110 @@
   /* ---------- wallpaper ---------- */
   var wallpaperEl = $("wallpaper");
   var creditEl = $("credit");
+  var currentBraveUrl = null;
+  var braveCreditText = "";
+  var braveCreditLink = null;
+  var wallpaperLoadId = 0;
+
+  function setCredit(text, link){
+    creditEl.innerHTML = "";
+    if(!text){ creditEl.textContent = "\u00a0"; return; }
+    if(link){
+      var a = document.createElement("a");
+      a.href = link;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = text;
+      creditEl.appendChild(a);
+    } else {
+      creditEl.textContent = text;
+    }
+  }
 
   function applyWallpaper(){
-    if(state.wallpaper){
+    if(state.braveShuffle && currentBraveUrl){
+      wallpaperEl.style.backgroundImage = "url(" + currentBraveUrl + ")";
+      wallpaperEl.classList.remove("empty");
+      if(state.showPhotoCredit) setCredit(braveCreditText, braveCreditLink);
+      else setCredit("", null);
+    } else if(state.wallpaper){
       wallpaperEl.style.backgroundImage = "url(" + state.wallpaper + ")";
       wallpaperEl.classList.remove("empty");
+      setCredit(state.credit || "", null);
     } else {
       wallpaperEl.style.backgroundImage = "";
       wallpaperEl.classList.add("empty");
+      setCredit(state.credit || "", null);
     }
-    creditEl.textContent = state.credit || "";
+  }
+
+  function pickRandomIndex(){
+    var total = BRAVE_WALLPAPERS.length;
+    if(total <= 1) return 0;
+
+    // A wallpaper may appear twice in the recent window, but never three
+    // times. Count the last N picks and exclude anything already seen twice.
+    var uses = {};
+    state.wallpaperHistory.forEach(function(idx){
+      uses[idx] = (uses[idx] || 0) + 1;
+    });
+
+    var allowed = [];
+    for(var i = 0; i < total; i++){
+      if((uses[i] || 0) < MAX_RECENT_USES) allowed.push(i);
+    }
+    // Safety net: if the collection were tiny, fall back to anything except
+    // the immediately previous pick.
+    if(!allowed.length){
+      for(var j = 0; j < total; j++){
+        if(j !== state.lastBraveIndex) allowed.push(j);
+      }
+    }
+    if(!allowed.length) return 0;
+
+    var index = allowed[Math.floor(Math.random() * allowed.length)];
+    if(index === state.lastBraveIndex && allowed.length > 1){
+      var other = allowed.filter(function(i){ return i !== state.lastBraveIndex; });
+      index = other[Math.floor(Math.random() * other.length)];
+    }
+    return index;
+  }
+
+  function pickBraveWallpaper(){
+    if(!BRAVE_WALLPAPERS.length || !state.braveShuffle) return;
+    var index = pickRandomIndex();
+    var item = BRAVE_WALLPAPERS[index];
+    var url = WALLPAPER_DIR + item.f;
+    var thisLoad = ++wallpaperLoadId;
+
+    // Preload before swapping, so we never show a half-loaded background.
+    var img = new Image();
+    img.onload = function(){
+      if(thisLoad !== wallpaperLoadId || !state.braveShuffle) return;
+      rememberWallpaper(index);
+      currentBraveUrl = url;
+      braveCreditText = "Photo by " + item.by + " · Brave";
+      braveCreditLink = item.url;
+      wallpaperEl.classList.add("fade");
+      applyWallpaper();
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ wallpaperEl.classList.remove("fade"); });
+      });
+    };
+    img.onerror = function(){
+      if(thisLoad !== wallpaperLoadId) return;
+      currentBraveUrl = null;
+      applyWallpaper();
+    };
+    img.src = url;
+  }
+
+  function syncShuffleUI(){
+    var on = !!state.braveShuffle;
+    $("braveShuffleToggle").classList.toggle("on", on);
+    $("braveShuffleToggle").setAttribute("aria-checked", on);
+    $("shuffleBtn").classList.toggle("hidden", !on);
+    $("newWallpaperBtn").disabled = !on;
   }
 
   function applyOverlay(){
@@ -158,18 +395,31 @@
     reader.readAsDataURL(file);
   }
 
+  $("shuffleBtn").addEventListener("click", pickBraveWallpaper);
+  $("newWallpaperBtn").addEventListener("click", pickBraveWallpaper);
+
   $("chooseWallpaper").addEventListener("click", function(){ $("wallpaperInput").click(); });
   $("wallpaperInput").addEventListener("change", function(e){
     var file = e.target.files && e.target.files[0];
     if(!file) return;
     fileToDataURL(file, function(dataUrl){
       state.wallpaper = dataUrl;
-      if(save()) applyWallpaper();
+      state.braveShuffle = false;
+      currentBraveUrl = null;
+      wallpaperLoadId++;
+      if(save()){
+        syncShuffleUI();
+        applyWallpaper();
+      }
     });
   });
   $("clearWallpaper").addEventListener("click", function(){
     state.wallpaper = null;
+    state.braveShuffle = false;
+    currentBraveUrl = null;
+    wallpaperLoadId++;
     save();
+    syncShuffleUI();
     applyWallpaper();
   });
 
@@ -218,6 +468,7 @@
 
   /* ---------- search suggestions ---------- */
   var debounceTimer = null;
+  var typingTimer = null;
   var suggestionsEl = $("suggestions");
   var searchInput = $("searchInput");
 
@@ -246,7 +497,8 @@
   function fetchSuggestions(query){
     // MV3 extensions cannot load remote JSONP scripts, so use
     // an extension-authorized request there. Normal pages use JSONP.
-    if(window.location.protocol === "chrome-extension:"){
+    if(window.location.protocol === "chrome-extension:" ||
+       window.location.protocol === "moz-extension:"){
       fetch("https://suggestqueries.google.com/complete/search?client=firefox&q=" +
         encodeURIComponent(query))
         .then(function(response){
@@ -293,6 +545,10 @@
   searchInput.addEventListener("input", function(e){
     var q = e.target.value.trim();
     clearTimeout(debounceTimer);
+    clearTimeout(typingTimer);
+    var bar = $("searchForm");
+    bar.classList.add("typing");
+    typingTimer = setTimeout(function(){ bar.classList.remove("typing"); }, 650);
     if(!q){ hideSuggestions(); return; }
     debounceTimer = setTimeout(function(){ fetchSuggestions(q); }, 200);
   });
@@ -304,6 +560,20 @@
   searchInput.addEventListener("focus", function(){
     var q = searchInput.value.trim();
     if(q) fetchSuggestions(q);
+  });
+
+  // Clicking anywhere on the pill (padding, glow edge, empty space) should
+  // start typing, not only the text field in the middle.
+  function isInside(el, parent){
+    while(el){
+      if(el === parent) return true;
+      el = el.parentNode;
+    }
+    return false;
+  }
+  $("searchForm").addEventListener("click", function(e){
+    if(isInside(e.target, $("engineSelect")) || isInside(e.target, this.querySelector(".search-submit"))) return;
+    searchInput.focus({ preventScroll: true });
   });
 
   /* ---------- greeting ---------- */
@@ -512,9 +782,15 @@
   $("resetAll").addEventListener("click", function(){
     if(!confirm("Reset everything back to defaults?")) return;
     state = defaultState();
+    state.wallpaperHistory = [];
+    state.lastBraveIndex = -1;
+    saveWallpaperHistory();
+    currentBraveUrl = null;
+    wallpaperLoadId++;
     save();
     applyAccent();
     applyWallpaper();
+    pickBraveWallpaper();
     applyOverlay();
     applyGradient();
     applyClockSize();
@@ -544,6 +820,8 @@
     $("showSecondsToggle").setAttribute("aria-checked", !!state.showSeconds);
     $("showAddButtonToggle").classList.toggle("on", !!state.showAddButton);
     $("showAddButtonToggle").setAttribute("aria-checked", !!state.showAddButton);
+    $("showPhotoCreditToggle").classList.toggle("on", !!state.showPhotoCredit);
+    $("showPhotoCreditToggle").setAttribute("aria-checked", !!state.showPhotoCredit);
     // sliders
     $("clockSizeRange").value = state.clockSize;
     $("clockSizeVal").textContent = state.clockSize + "px";
@@ -565,6 +843,7 @@
     // inputs
     $("greetingInput").value = state.greeting || "";
     $("creditInput").value = state.credit || "";
+    syncShuffleUI();
   }
 
   /* ---------- init ---------- */
@@ -573,10 +852,22 @@
   setupSegToggle($("timeFormatToggle"), "timeFormat", tick);
   setupToggle($("showSecondsToggle"), "showSeconds");
   setupToggle($("showAddButtonToggle"), "showAddButton", renderLinks);
+  setupToggle($("showPhotoCreditToggle"), "showPhotoCredit", applyWallpaper);
+  setupToggle($("braveShuffleToggle"), "braveShuffle", function(){
+    syncShuffleUI();
+    if(state.braveShuffle){
+      pickBraveWallpaper();
+    } else {
+      currentBraveUrl = null;
+      wallpaperLoadId++;
+      applyWallpaper();
+    }
+  });
 
   // apply visual state
   applyAccent();
   applyWallpaper();
+  pickBraveWallpaper();
   applyOverlay();
   applyGradient();
   applyClockSize();

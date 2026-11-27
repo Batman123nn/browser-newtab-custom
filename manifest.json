@@ -3,6 +3,20 @@
   "name": "Custom New Tab",
   "version": "1.0.0",
   "description": "A customizable new-tab page.",
+  "icons": {
+    "16": "Assets/icons/internet-16.png",
+    "32": "Assets/icons/internet-32.png",
+    "48": "Assets/icons/internet-48.png",
+    "128": "Assets/icons/internet-128.png"
+  },
+  "action": {
+    "default_icon": "Assets/icons/internet-48.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "custom-new-tab@dario.local"
+    }
+  },
   "chrome_url_overrides": {
     "newtab": "index.html"
   },

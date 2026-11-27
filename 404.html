@@ -1,17 +1,26 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Redirecting...</title>
 <script>
-  var path = window.location.pathname;
-  var base = "/browser-newtab-custom";
-  if(path.startsWith(base + "/")){
-    var query = path.slice(base.length + 1);
-    window.location.replace(base + "/?q=" + encodeURIComponent(query));
-  } else {
-    window.location.replace(base + "/");
-  }
+  // GitHub Pages serves this file for any missing path. The site can live at
+  // /<repo>/ (project pages), at / (user pages) or at a custom domain. Find the
+  // repo segment in the requested URL and redirect back to that base; no
+  // hardcoded "/browser-newtab-custom" prefix.
+  (function(){
+    var REPO = "browser-newtab-custom";
+    var parts = window.location.pathname.split("/").filter(Boolean);
+    var repoAt = parts.indexOf(REPO);
+    var base = repoAt >= 0 ? "/" + parts.slice(0, repoAt + 1).join("/") : "";
+    var rest = repoAt >= 0 ? parts.slice(repoAt + 1) : parts;
+
+    if(rest.length){
+      window.location.replace(base + "/?q=" + encodeURIComponent(rest.join("/")));
+    } else {
+      window.location.replace(base + "/");
+    }
+  })();
 </script>
 </head>
 <body>
