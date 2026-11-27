@@ -3,9 +3,7 @@
 
   var STORE_KEY = "localstart_v2";
   var WALLPAPER_INDEX_KEY = "localstart_brave_wallpaper_index";
-  var WALLPAPER_HISTORY_KEY = "localstart_brave_wallpaper_history";
-  var WALLPAPER_HISTORY_LENGTH = 12;
-  var MAX_RECENT_USES = 2;
+  var WALLPAPER_BAG_KEY = "localstart_brave_wallpaper_bag";
   var WALLPAPER_DIR = "Assets/wallpapers/brave/";
 
   var ENGINES = {
@@ -153,49 +151,75 @@
       braveShuffle: true,
       showPhotoCredit: true,
       lastBraveIndex: -1,
-      wallpaperHistory: []
+      wallpaperBag: []
     };
   }
 
   var state = Object.assign(defaultState(), loadState() || {});
 
-  function loadWallpaperHistory(){
+  // A shuffled bag of every wallpaper index. Each pick removes one entry, so
+  // nothing repeats until the bag is empty; then a fresh shuffled bag starts.
+  function freshWallpaperBag(lastIndex){
+    var bag = [];
+    for(var i = 0; i < BRAVE_WALLPAPERS.length; i++) bag.push(i);
+    for(var i = bag.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = bag[i]; bag[i] = bag[j]; bag[j] = tmp;
+    }
+    // We pop from the end, so keep the just-used photo off the top of a
+    // new cycle when possible.
+    if(bag.length > 1 && bag[bag.length - 1] === lastIndex){
+      var k = Math.floor(Math.random() * (bag.length - 1));
+      var swap = bag[bag.length - 1];
+      bag[bag.length - 1] = bag[k];
+      bag[k] = swap;
+    }
+    return bag;
+  }
+
+  function loadWallpaperBagState(){
     try{
-      var parsed = JSON.parse(localStorage.getItem(WALLPAPER_HISTORY_KEY));
-      if(Array.isArray(parsed)){
-        return parsed.filter(function(n){
-          return typeof n === "number" && n >= 0 && n < BRAVE_WALLPAPERS.length;
-        }).slice(-WALLPAPER_HISTORY_LENGTH);
+      var data = JSON.parse(localStorage.getItem(WALLPAPER_BAG_KEY));
+      if(data && data.count === BRAVE_WALLPAPERS.length && Array.isArray(data.remaining)){
+        var seen = {}, clean = [];
+        data.remaining.forEach(function(n){
+          if(typeof n === "number" && n >= 0 && n < BRAVE_WALLPAPERS.length && !seen[n]){
+            seen[n] = 1;
+            clean.push(n);
+          }
+        });
+        if(clean.length){
+          return {
+            bag: clean,
+            last: (typeof data.last === "number") ? data.last : -1
+          };
+        }
       }
     }catch(e){ /* ignore */ }
 
     // Migrate the older single-index key.
+    var last = -1;
     try{
       var old = parseInt(localStorage.getItem(WALLPAPER_INDEX_KEY), 10);
-      if(!isNaN(old) && old >= 0 && old < BRAVE_WALLPAPERS.length) return [old];
+      if(!isNaN(old) && old >= 0 && old < BRAVE_WALLPAPERS.length) last = old;
     }catch(e){ /* ignore */ }
-    return [];
+    return { bag: freshWallpaperBag(last), last: last };
   }
 
-  function saveWallpaperHistory(){
+  function saveWallpaperBag(){
     try{
-      localStorage.setItem(WALLPAPER_HISTORY_KEY, JSON.stringify(state.wallpaperHistory));
+      localStorage.setItem(WALLPAPER_BAG_KEY, JSON.stringify({
+        count: BRAVE_WALLPAPERS.length,
+        last: state.lastBraveIndex,
+        remaining: state.wallpaperBag
+      }));
       localStorage.setItem(WALLPAPER_INDEX_KEY, String(state.lastBraveIndex));
     }catch(e){ /* non-fatal */ }
   }
 
-  function rememberWallpaper(index){
-    state.wallpaperHistory.push(index);
-    if(state.wallpaperHistory.length > WALLPAPER_HISTORY_LENGTH){
-      state.wallpaperHistory.splice(0, state.wallpaperHistory.length - WALLPAPER_HISTORY_LENGTH);
-    }
-    state.lastBraveIndex = index;
-    saveWallpaperHistory();
-  }
-
-  state.wallpaperHistory = loadWallpaperHistory();
-  state.lastBraveIndex = state.wallpaperHistory.length ?
-    state.wallpaperHistory[state.wallpaperHistory.length - 1] : -1;
+  var loadedBag = loadWallpaperBagState();
+  state.wallpaperBag = loadedBag.bag;
+  state.lastBraveIndex = loadedBag.last;
 
   function save(){
     try{
@@ -203,7 +227,7 @@
       // Kept in its own tiny key so a large uploaded image doesn't get
       // re-serialized every time a new wallpaper is picked.
       delete toStore.lastBraveIndex;
-      delete toStore.wallpaperHistory;
+      delete toStore.wallpaperBag;
       localStorage.setItem(STORE_KEY, JSON.stringify(toStore));
       return true;
     }catch(e){
@@ -298,34 +322,16 @@
   }
 
   function pickRandomIndex(){
-    var total = BRAVE_WALLPAPERS.length;
-    if(total <= 1) return 0;
+    if(BRAVE_WALLPAPERS.length <= 1) return 0;
 
-    // A wallpaper may appear twice in the recent window, but never three
-    // times. Count the last N picks and exclude anything already seen twice.
-    var uses = {};
-    state.wallpaperHistory.forEach(function(idx){
-      uses[idx] = (uses[idx] || 0) + 1;
-    });
-
-    var allowed = [];
-    for(var i = 0; i < total; i++){
-      if((uses[i] || 0) < MAX_RECENT_USES) allowed.push(i);
+    if(!state.wallpaperBag.length){
+      state.wallpaperBag = freshWallpaperBag(state.lastBraveIndex);
     }
-    // Safety net: if the collection were tiny, fall back to anything except
-    // the immediately previous pick.
-    if(!allowed.length){
-      for(var j = 0; j < total; j++){
-        if(j !== state.lastBraveIndex) allowed.push(j);
-      }
-    }
-    if(!allowed.length) return 0;
-
-    var index = allowed[Math.floor(Math.random() * allowed.length)];
-    if(index === state.lastBraveIndex && allowed.length > 1){
-      var other = allowed.filter(function(i){ return i !== state.lastBraveIndex; });
-      index = other[Math.floor(Math.random() * other.length)];
-    }
+    // Pop from the pre-shuffled bag: every wallpaper is used exactly once
+    // before the whole set starts over.
+    var index = state.wallpaperBag.pop();
+    state.lastBraveIndex = index;
+    saveWallpaperBag();
     return index;
   }
 
@@ -340,7 +346,6 @@
     var img = new Image();
     img.onload = function(){
       if(thisLoad !== wallpaperLoadId || !state.braveShuffle) return;
-      rememberWallpaper(index);
       currentBraveUrl = url;
       braveCreditText = "Photo by " + item.by + " · Brave";
       braveCreditLink = item.url;
@@ -782,9 +787,9 @@
   $("resetAll").addEventListener("click", function(){
     if(!confirm("Reset everything back to defaults?")) return;
     state = defaultState();
-    state.wallpaperHistory = [];
+    state.wallpaperBag = freshWallpaperBag(-1);
     state.lastBraveIndex = -1;
-    saveWallpaperHistory();
+    saveWallpaperBag();
     currentBraveUrl = null;
     wallpaperLoadId++;
     save();

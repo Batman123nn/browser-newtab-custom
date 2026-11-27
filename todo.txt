@@ -104,3 +104,12 @@ FOLLOW-UP 3 (user request)
 - Clicking anywhere on the search bar pill now focuses the input, not just the
   text field in the middle. Engine selector and submit button keep their own
   behavior. Added cursor:text to the bar. node --check passes.
+
+FOLLOW-UP 4 (user request)
+--------------------------
+- Replaced the 12-pick cap with a shuffled bag: every wallpaper is used exactly
+  once before the bag resets and a new shuffled cycle starts. Bag state (count,
+  last index, remaining indices) is stored in its own localStorage key and
+  survives reloads. No consecutive repeats across cycle boundaries.
+- Verified with the actual pickRandomIndex/freshWallpaperBag code: 300 picks
+  across 4 cycles gave 0 duplicates within a cycle and 0 immediate repeats.

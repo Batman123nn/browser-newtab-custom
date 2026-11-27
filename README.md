@@ -10,7 +10,7 @@ A customizable new-tab page with a different authentic Brave wallpaper on every 
 - Images were resized to JPEG so they work everywhere, including Ladybird.
 - Full credit table: [`Assets/wallpapers/brave/CREDITS.md`](Assets/wallpapers/brave/CREDITS.md).
 
-Every page load picks a random wallpaper. A photo can appear at most **twice in the last 12 loads** — never three times — and never twice in a row. The credit line in the bottom-left links to the artist (hide it with **Settings → Show photo credit**). Use the shuffle button in the top-right (or **Settings → Wallpaper → New wallpaper now**) to roll a new one instantly.
+Wallpapers are picked from a shuffled bag: **no wallpaper repeats until all 86 have been shown**, then a fresh shuffled cycle begins. Progress is saved in `localStorage`, so reloads continue the same cycle. The credit line in the bottom-left links to the artist (hide it with **Settings → Show photo credit**). Use the shuffle button in the top-right (or **Settings → Wallpaper → New wallpaper now**) to roll a new one instantly.
 
 The tab icon and extension icon both come from `Assets/icons/internet.png`; resized copies are used for the browser tab and extension toolbar.
 
