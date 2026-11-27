@@ -41,7 +41,34 @@ All asset paths are relative, so the page works at the `/browser-newtab-custom/`
 3. Choose this folder (Brave: **Load unpacked**; Firefox: select `manifest.json`).
 4. Open a new tab.
 
-Firefox uses a fixed extension ID (`custom-new-tab@dario.local`) declared in `manifest.json`. Search suggestions use a CORS request in extensions and JSONP on normal pages, so both modes work.
+### Firefox: “corrupted extension” when installing from a file
+
+That message is Firefox's generic error for an **unsigned** add-on installed through **about:addons → Install Add-on From File**. A normal Firefox release refuses unsigned add-ons even when they are installed from a local file.
+
+For quick testing, use **Load Temporary Add-on** and select `manifest.json` from this folder. It stays active until Firefox is restarted.
+
+### Firefox: permanent install
+
+Normal Firefox releases require a Mozilla-signed XPI. To make one:
+
+1. Build a correctly packaged archive (with `manifest.json` at the archive root):
+   ```sh
+   python3 build-extension.py
+   ```
+   This writes `dist/custom-new-tab-1.0.1.xpi`.
+2. Create an AMO developer account and API credentials at <https://addons.mozilla.org/en-US/developers/addon/api/key/>.
+3. Sign it as an unlisted add-on:
+   ```sh
+   WEB_EXT_API_KEY="your-key" WEB_EXT_API_SECRET="your-secret" \
+   npx web-ext sign --source-dir . --artifacts-dir dist --channel=unlisted
+   ```
+4. Install the signed `.xpi` from `dist/` using **about:addons → Install Add-on From File**. It will stay installed across restarts.
+
+`manifest.json` declares the fixed ID `custom-new-tab@dario.local` and `data_collection_permissions` for the search suggestions sent to Google. If that ID is already taken on AMO, change it to another unique `name@example.com`-style ID before signing.
+
+Alternatively, use Firefox ESR, Developer Edition, or Nightly, set `xpinstall.signatures.required` to `false` in `about:config`, and install the unsigned `dist/custom-new-tab-1.0.1.xpi` permanently. Standard Firefox releases ignore that preference.
+
+Search suggestions use a CORS request in extensions and JSONP on normal pages, so both modes work.
 
 ## Settings
 

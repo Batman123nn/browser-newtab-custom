@@ -113,3 +113,25 @@ FOLLOW-UP 4 (user request)
   survives reloads. No consecutive repeats across cycle boundaries.
 - Verified with the actual pickRandomIndex/freshWallpaperBag code: 300 picks
   across 4 cycles gave 0 duplicates within a cycle and 0 immediate repeats.
+
+FOLLOW-UP 5 (Firefox install)
+-----------------------------
+- Checked manifest with web-ext lint: 0 errors (only non-blocking warnings).
+- "Corrupted" in Firefox means an unsigned add-on installed via
+  about:addons -> Install Add-on From File, not a broken extension. Correct path
+  is about:debugging -> Load Temporary Add-on -> manifest.json. README now
+  explains this, temporary lifetime, and the correct XPI archive layout.
+- User confirmed the temporary extension works. For a permanent install on
+  normal Firefox, an AMO-signed XPI is required.
+- Added build-extension.py: builds dist/custom-new-tab-1.0.0.xpi with
+  manifest.json at the archive root (98 entries; verified no nested repo root).
+- Manifest now declares strict_min_version 140.0 and
+  data_collection_permissions.required = ["searchTerms"] as required for new
+  AMO submissions. web-ext lint: 0 errors; remaining warnings are non-blocking.
+- README now documents unlisted signing with web-ext sign and the
+  ESR/Dev/Nightly alternative.
+- User wants the most permanent option but does not want a public AMO listing.
+  Chosen route: AMO unlisted signing (private, not published in AMO listings).
+- First signing attempt uploaded v1.0.0 before being interrupted; re-uploading
+  the same version failed with "This upload has already been submitted."
+- Bumped version to 1.0.1 at user's request so they can upload a fresh XPI.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Custom New Tab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A customizable new-tab page.",
   "icons": {
     "16": "Assets/icons/internet-16.png",
@@ -14,7 +14,11 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "custom-new-tab@dario.local"
+      "id": "custom-new-tab@dario.local",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["searchTerms"]
+      }
     }
   },
   "chrome_url_overrides": {
